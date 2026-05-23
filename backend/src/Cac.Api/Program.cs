@@ -1,28 +1,36 @@
 using Cac.Api.Middleware;
+using Cac.Application.Interfaces;
+using Cac.Application.Services;
+using Cac.Infrastructure.Auth;
 using Cac.Infrastructure.Data;
+using Cac.Infrastructure.Repositories;
 using Dapper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
 DefaultTypeMap.MatchNamesWithUnderscores = true;
 
+JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
+
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' não encontrada.");
+    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' nao encontrada.");
 
 builder.Services.AddSingleton<IDbConnectionFactory>(_ => new DbConnectionFactory(connectionString));
 
 var jwtSection = builder.Configuration.GetSection("Jwt");
-var secretKey  = jwtSection["SecretKey"]  ?? throw new InvalidOperationException("Jwt:SecretKey não configurado.");
-var issuer     = jwtSection["Issuer"]     ?? throw new InvalidOperationException("Jwt:Issuer não configurado.");
-var audience   = jwtSection["Audience"]   ?? throw new InvalidOperationException("Jwt:Audience não configurado.");
+var secretKey  = jwtSection["SecretKey"]  ?? throw new InvalidOperationException("Jwt:SecretKey nao configurado.");
+var issuer     = jwtSection["Issuer"]     ?? throw new InvalidOperationException("Jwt:Issuer nao configurado.");
+var audience   = jwtSection["Audience"]   ?? throw new InvalidOperationException("Jwt:Audience nao configurado.");
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
+        options.MapInboundClaims = false;
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer           = true,
@@ -32,7 +40,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidIssuer              = issuer,
             ValidAudience            = audience,
             IssuerSigningKey         = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
-            ClockSkew                = TimeSpan.Zero
+            ClockSkew                = TimeSpan.Zero,
+            RoleClaimType            = "role",
+            NameClaimType            = JwtRegisteredClaimNames.Sub
         };
     });
 
@@ -50,16 +60,17 @@ builder.Services.AddCors(options =>
               .AllowAnyMethod());
 });
 
+builder.Services.AddSingleton<IJwtService, JwtService>();
+builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
+builder.Services.AddScoped<IAuthRepository, AuthRepository>();
+builder.Services.AddScoped<AuthService>();
+
 builder.Services.AddControllers();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
-    options.SwaggerDoc("v1", new OpenApiInfo
-    {
-        Title   = "CAC Compras API",
-        Version = "v1"
-    });
+    options.SwaggerDoc("v1", new OpenApiInfo { Title = "CAC Compras API", Version = "v1" });
 
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
@@ -76,11 +87,7 @@ builder.Services.AddSwaggerGen(options =>
         {
             new OpenApiSecurityScheme
             {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id   = "Bearer"
-                }
+                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
             },
             Array.Empty<string>()
         }
