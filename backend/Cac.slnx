@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Cac.Api/Cac.Api.csproj" />
+    <Project Path="src/Cac.Application/Cac.Application.csproj" />
+    <Project Path="src/Cac.Domain/Cac.Domain.csproj" />
+    <Project Path="src/Cac.Infrastructure/Cac.Infrastructure.csproj" />
+  </Folder>
+</Solution>

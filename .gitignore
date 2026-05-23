@@ -1,0 +1,9 @@
+backend/src/Cac.Api/appsettings.Development.json
+
+frontend/.env
+frontend/node_modules/
+
+*.user
+
+backend/**/bin/
+backend/**/obj/
