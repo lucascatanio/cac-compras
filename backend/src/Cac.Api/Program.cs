@@ -86,6 +86,8 @@ builder.Services.AddScoped<ISaidaRepository, SaidaRepository>();
 builder.Services.AddScoped<SaidaService>();
 builder.Services.AddScoped<IRelatorioRepository, RelatorioRepository>();
 builder.Services.AddScoped<RelatorioService>();
+builder.Services.AddScoped<IAuditoriaRepository, AuditoriaRepository>();
+builder.Services.AddScoped<AuditoriaService>();
 
 builder.Services.AddHostedService<DatabaseWarmupService>();
 

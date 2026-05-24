@@ -19,6 +19,7 @@ import EntradaDetailPage from '@/features/entradas/EntradaDetailPage'
 import SaidasListPage from '@/features/saidas/SaidasListPage'
 import SaidaFormPage from '@/features/saidas/SaidaFormPage'
 import SaidaDetailPage from '@/features/saidas/SaidaDetailPage'
+import AuditoriaPage from '@/features/auditoria/AuditoriaPage'
 import ConsumoPorSetorPage from '@/features/relatorios/ConsumoPorSetorPage'
 import FichaProdutoPage from '@/features/relatorios/FichaProdutoPage'
 import FornecedoresPorProdutoPage from '@/features/relatorios/FornecedoresPorProdutoPage'
@@ -51,6 +52,7 @@ const gruposEscritaRoles = ['ALMOXARIFE', 'GERENTE_COMPRAS', 'TI']
 const setoresEscritaRoles = ['GERENTE_COMPRAS', 'TI']
 
 const usuariosRoles = ['TI']
+const auditoriaRoles = ['TI']
 
 const entradasRoles = ['COMPRADOR', 'ALMOXARIFE', 'GERENTE_COMPRAS', 'TI']
 const saidasRoles = ['ALMOXARIFE', 'GESTOR_SETOR', 'GERENTE_COMPRAS', 'TI']
@@ -198,6 +200,12 @@ export const router = createBrowserRouter([
             element: <RequireRole roles={r9Roles} />,
             children: [
               { path: '/relatorios/historico-precos', element: <HistoricoPrecosPage /> },
+            ],
+          },
+          {
+            element: <RequireRole roles={auditoriaRoles} />,
+            children: [
+              { path: '/auditoria', element: <AuditoriaPage /> },
             ],
           },
         ],

@@ -533,3 +533,26 @@ export interface HistoricoPrecosParams {
   dataInicio?: string
   dataFim?: string
 }
+
+// Auditoria
+export interface AuditoriaItem {
+  idLog: number
+  tabela: string
+  operacao: string
+  idRegistro: number
+  dadosAnteriores: string | null
+  dadosNovos: string | null
+  usuario: string
+  dataHora: string
+}
+
+export interface AuditoriaParams {
+  tabela?: string
+  operacao?: string
+  idRegistro?: number
+  usuario?: string
+  dataInicio?: string
+  dataFim?: string
+  pagina: number
+  tamanhoPagina: number
+}
