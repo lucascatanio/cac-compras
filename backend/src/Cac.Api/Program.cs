@@ -82,6 +82,8 @@ builder.Services.AddScoped<IPerfilRepository, PerfilRepository>();
 builder.Services.AddScoped<PerfilService>();
 builder.Services.AddScoped<IEntradaRepository, EntradaRepository>();
 builder.Services.AddScoped<EntradaService>();
+builder.Services.AddScoped<ISaidaRepository, SaidaRepository>();
+builder.Services.AddScoped<SaidaService>();
 
 builder.Services.AddHostedService<DatabaseWarmupService>();
 

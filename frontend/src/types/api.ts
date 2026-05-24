@@ -311,3 +311,51 @@ export interface RegistrarEntradaRequest {
   observacao?: string | null
   itens: ItemEntradaRequest[]
 }
+
+export interface SaidaListItem {
+  idSaida: number
+  dataSaida: string
+  observacao: string | null
+  idSetor: number
+  setor: string
+  qtdItens: number
+  valorTotal: number | null
+}
+
+export interface SaidaItem {
+  idItemSaida: number
+  idProduto: number
+  produto: string
+  unidadeMedida: string
+  quantidade: number
+  precoMedioUnitario: number
+  valorTotal: number
+}
+
+export interface SaidaDetail {
+  idSaida: number
+  dataSaida: string
+  observacao: string | null
+  idSetor: number
+  setor: string
+  itens: SaidaItem[]
+}
+
+export interface SaidaListParams {
+  dataInicio?: string
+  dataFim?: string
+  idSetor?: number
+  pagina: number
+  tamanhoPagina: number
+}
+
+export interface ItemSaidaRequest {
+  idProduto: number
+  quantidade: number
+}
+
+export interface RegistrarSaidaRequest {
+  idSetor: number
+  observacao?: string | null
+  itens: ItemSaidaRequest[]
+}
