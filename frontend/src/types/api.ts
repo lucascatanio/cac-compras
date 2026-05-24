@@ -445,3 +445,91 @@ export interface MenorPrecoPorProdutoItem {
 export interface MenorPrecoPorProdutoParams {
   idProduto?: number
 }
+
+// R6 — Produtos Mais Demandados
+export interface ProdutosMaisDemandadosItem {
+  idProduto: number
+  produto: string
+  grupo: string
+  unidadeMedida: string
+  qtdTotalConsumida: number
+  valorTotalConsumido: number
+  setoresConsumidores: number
+  numSaidas: number
+  primeiraSaida: string | null
+  ultimaSaida: string | null
+  saldoAtual: number
+  estoqueMinimo: number
+  statusEstoque: string
+}
+
+export interface ProdutosMaisDemandadosParams {
+  topN?: number
+  dataInicio?: string
+  dataFim?: string
+  idGrupo?: number
+  idSetor?: number
+  criterio?: string
+}
+
+// R7 — Comparativo de Preços
+export interface ComparativoPrecosItem {
+  idProduto: number
+  produto: string
+  grupo: string
+  idFornecedor: number
+  fornecedor: string
+  cnpj: string
+  ultimoPreco: number
+  dataUltimaCompra: string
+  qtdUltimaCompra: number
+  menorPreco: number
+  precoMedio: number
+  qtdFornecedores: number
+  deltaVsMenor: number
+  pctAcimaDoMenor: number | null
+  pctVsMedia: number | null
+  classificacao: string
+}
+
+export interface ComparativoPrecosParams {
+  idProduto?: number
+  minPctAcimaDoMenor?: number
+}
+
+// R8 — Curva ABC
+export interface CurvaAbcItem {
+  idProduto: number
+  produto: string
+  grupo: string
+  qtdTotalConsumida: number
+  valorTotalConsumido: number
+  pctIndividual: number
+  pctAcumulado: number
+  classeAbc: string
+}
+
+export interface CurvaAbcParams {
+  classe?: string
+}
+
+// R9 — Histórico de Preços
+export interface HistoricoPrecosItem {
+  idProduto: number
+  produto: string
+  grupo: string
+  idFornecedor: number
+  fornecedor: string
+  dataEntrada: string
+  precoUnitario: number
+  quantidade: number
+  mediaMovel3Compras: number | null
+  precoCompraAnterior: number | null
+  deltaVsAnterior: number | null
+}
+
+export interface HistoricoPrecosParams {
+  idFornecedor?: number
+  dataInicio?: string
+  dataFim?: string
+}

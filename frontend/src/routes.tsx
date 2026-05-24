@@ -24,6 +24,10 @@ import FichaProdutoPage from '@/features/relatorios/FichaProdutoPage'
 import FornecedoresPorProdutoPage from '@/features/relatorios/FornecedoresPorProdutoPage'
 import ProdutosEmFaltaPage from '@/features/relatorios/ProdutosEmFaltaPage'
 import MenorPrecoPage from '@/features/relatorios/MenorPrecoPage'
+import ProdutosMaisDemandadosPage from '@/features/relatorios/ProdutosMaisDemandadosPage'
+import ComparativoPrecosPage from '@/features/relatorios/ComparativoPrecosPage'
+import CurvaABCPage from '@/features/relatorios/CurvaABCPage'
+import HistoricoPrecosPage from '@/features/relatorios/HistoricoPrecosPage'
 
 /** Bloqueia rotas que exigem login */
 function RequireAuth() {
@@ -56,6 +60,10 @@ const r2Roles = ['COMPRADOR', 'ALMOXARIFE', 'GERENTE_COMPRAS', 'FINANCEIRO', 'TI
 const r3Roles = ['COMPRADOR', 'ALMOXARIFE', 'GERENTE_COMPRAS', 'TI']
 const r4Roles = ['COMPRADOR', 'ALMOXARIFE', 'GERENTE_COMPRAS', 'DIRETOR', 'TI']
 const r5Roles = ['COMPRADOR', 'GERENTE_COMPRAS', 'FINANCEIRO', 'TI']
+const r6Roles = ['COMPRADOR', 'ALMOXARIFE', 'GERENTE_COMPRAS', 'DIRETOR', 'FINANCEIRO', 'TI']
+const r7Roles = ['COMPRADOR', 'GERENTE_COMPRAS', 'FINANCEIRO', 'TI']
+const r8Roles = ['GERENTE_COMPRAS', 'DIRETOR', 'FINANCEIRO', 'TI']
+const r9Roles = ['COMPRADOR', 'GERENTE_COMPRAS', 'FINANCEIRO', 'TI']
 
 const produtosLeituraRoles = ['COMPRADOR', 'ALMOXARIFE', 'GESTOR_SETOR', 'GERENTE_COMPRAS', 'TI']
 const produtosEscritaRoles = ['ALMOXARIFE', 'GERENTE_COMPRAS', 'TI']
@@ -166,6 +174,30 @@ export const router = createBrowserRouter([
             element: <RequireRole roles={r5Roles} />,
             children: [
               { path: '/relatorios/menor-preco', element: <MenorPrecoPage /> },
+            ],
+          },
+          {
+            element: <RequireRole roles={r6Roles} />,
+            children: [
+              { path: '/relatorios/produtos-mais-demandados', element: <ProdutosMaisDemandadosPage /> },
+            ],
+          },
+          {
+            element: <RequireRole roles={r7Roles} />,
+            children: [
+              { path: '/relatorios/comparativo-precos', element: <ComparativoPrecosPage /> },
+            ],
+          },
+          {
+            element: <RequireRole roles={r8Roles} />,
+            children: [
+              { path: '/relatorios/curva-abc', element: <CurvaABCPage /> },
+            ],
+          },
+          {
+            element: <RequireRole roles={r9Roles} />,
+            children: [
+              { path: '/relatorios/historico-precos', element: <HistoricoPrecosPage /> },
             ],
           },
         ],

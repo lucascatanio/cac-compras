@@ -62,4 +62,41 @@ public sealed class RelatoriosController : ControllerBase
         var result = await _service.MenorPrecoPorProdutoAsync(query);
         return Ok(result);
     }
+
+    [HttpGet("produtos-mais-demandados")]
+    [Authorize(Roles = "COMPRADOR,ALMOXARIFE,GERENTE_COMPRAS,DIRETOR,FINANCEIRO,TI")]
+    public async Task<ActionResult<IEnumerable<ProdutosMaisDemandadosItemDto>>> ProdutosMaisDemandados(
+        [FromQuery] ProdutosMaisDemandadosQueryDto query)
+    {
+        var result = await _service.ProdutosMaisDemandadosAsync(query);
+        return Ok(result);
+    }
+
+    [HttpGet("comparativo-precos")]
+    [Authorize(Roles = "COMPRADOR,GERENTE_COMPRAS,FINANCEIRO,TI")]
+    public async Task<ActionResult<IEnumerable<ComparativoPrecosItemDto>>> ComparativoPrecos(
+        [FromQuery] ComparativoPrecosQueryDto query)
+    {
+        var result = await _service.ComparativoPrecosAsync(query);
+        return Ok(result);
+    }
+
+    [HttpGet("curva-abc")]
+    [Authorize(Roles = "GERENTE_COMPRAS,DIRETOR,FINANCEIRO,TI")]
+    public async Task<ActionResult<IEnumerable<CurvaAbcItemDto>>> CurvaAbc(
+        [FromQuery] CurvaAbcQueryDto query)
+    {
+        var result = await _service.CurvaAbcAsync(query);
+        return Ok(result);
+    }
+
+    [HttpGet("historico-precos/{idProduto:int}")]
+    [Authorize(Roles = "COMPRADOR,GERENTE_COMPRAS,FINANCEIRO,TI")]
+    public async Task<ActionResult<IEnumerable<HistoricoPrecosItemDto>>> HistoricoPrecos(
+        int idProduto,
+        [FromQuery] HistoricoPrecosQueryDto query)
+    {
+        var result = await _service.HistoricoPrecosAsync(idProduto, query);
+        return Ok(result);
+    }
 }

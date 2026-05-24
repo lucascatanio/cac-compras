@@ -76,4 +76,62 @@ public sealed class RelatorioRepository : IRelatorioRepository
             commandType: CommandType.StoredProcedure,
             commandTimeout: CommandTimeoutInSeconds);
     }
+
+    public async Task<IEnumerable<ProdutosMaisDemandadosItemDto>> ProdutosMaisDemandadosAsync(ProdutosMaisDemandadosQueryDto query)
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        return await connection.QueryAsync<ProdutosMaisDemandadosItemDto>(
+            "sp_ProdutosMaisDemandados",
+            new
+            {
+                top_n = query.TopN,
+                data_inicio = query.DataInicio,
+                data_fim = query.DataFim,
+                id_grupo = query.IdGrupo,
+                id_setor = query.IdSetor,
+                criterio = query.Criterio
+            },
+            commandType: CommandType.StoredProcedure,
+            commandTimeout: CommandTimeoutInSeconds);
+    }
+
+    public async Task<IEnumerable<ComparativoPrecosItemDto>> ComparativoPrecosAsync(ComparativoPrecosQueryDto query)
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        return await connection.QueryAsync<ComparativoPrecosItemDto>(
+            "sp_Relatorio_ComparativoPrecos",
+            new
+            {
+                id_produto = query.IdProduto,
+                min_pct_acima_menor = query.MinPctAcimaDoMenor
+            },
+            commandType: CommandType.StoredProcedure,
+            commandTimeout: CommandTimeoutInSeconds);
+    }
+
+    public async Task<IEnumerable<CurvaAbcItemDto>> CurvaAbcAsync(CurvaAbcQueryDto query)
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        return await connection.QueryAsync<CurvaAbcItemDto>(
+            "sp_Relatorio_CurvaABC",
+            new { classe = query.Classe },
+            commandType: CommandType.StoredProcedure,
+            commandTimeout: CommandTimeoutInSeconds);
+    }
+
+    public async Task<IEnumerable<HistoricoPrecosItemDto>> HistoricoPrecosAsync(int idProduto, HistoricoPrecosQueryDto query)
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        return await connection.QueryAsync<HistoricoPrecosItemDto>(
+            "sp_Relatorio_HistoricoPrecos",
+            new
+            {
+                id_produto = idProduto,
+                id_fornecedor = query.IdFornecedor,
+                data_inicio = query.DataInicio,
+                data_fim = query.DataFim
+            },
+            commandType: CommandType.StoredProcedure,
+            commandTimeout: CommandTimeoutInSeconds);
+    }
 }

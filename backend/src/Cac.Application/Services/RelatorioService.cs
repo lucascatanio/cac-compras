@@ -26,4 +26,16 @@ public sealed class RelatorioService
 
     public Task<IEnumerable<MenorPrecoPorProdutoItemDto>> MenorPrecoPorProdutoAsync(MenorPrecoPorProdutoQueryDto query)
         => _repository.MenorPrecoPorProdutoAsync(query);
+
+    public Task<IEnumerable<ProdutosMaisDemandadosItemDto>> ProdutosMaisDemandadosAsync(ProdutosMaisDemandadosQueryDto query)
+        => _repository.ProdutosMaisDemandadosAsync(query);
+
+    public Task<IEnumerable<ComparativoPrecosItemDto>> ComparativoPrecosAsync(ComparativoPrecosQueryDto query)
+        => _repository.ComparativoPrecosAsync(query);
+
+    public Task<IEnumerable<CurvaAbcItemDto>> CurvaAbcAsync(CurvaAbcQueryDto query)
+        => _repository.CurvaAbcAsync(query);
+
+    public Task<IEnumerable<HistoricoPrecosItemDto>> HistoricoPrecosAsync(int idProduto, HistoricoPrecosQueryDto query)
+        => _repository.HistoricoPrecosAsync(idProduto, query);
 }

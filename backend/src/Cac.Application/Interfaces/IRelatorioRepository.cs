@@ -9,4 +9,8 @@ public interface IRelatorioRepository
     Task<IEnumerable<FornecedoresPorProdutoItemDto>> FornecedoresPorProdutoAsync(FornecedoresPorProdutoQueryDto query);
     Task<IEnumerable<ProdutosEmFaltaItemDto>> ProdutosEmFaltaAsync(ProdutosEmFaltaQueryDto query);
     Task<IEnumerable<MenorPrecoPorProdutoItemDto>> MenorPrecoPorProdutoAsync(MenorPrecoPorProdutoQueryDto query);
+    Task<IEnumerable<ProdutosMaisDemandadosItemDto>> ProdutosMaisDemandadosAsync(ProdutosMaisDemandadosQueryDto query);
+    Task<IEnumerable<ComparativoPrecosItemDto>> ComparativoPrecosAsync(ComparativoPrecosQueryDto query);
+    Task<IEnumerable<CurvaAbcItemDto>> CurvaAbcAsync(CurvaAbcQueryDto query);
+    Task<IEnumerable<HistoricoPrecosItemDto>> HistoricoPrecosAsync(int idProduto, HistoricoPrecosQueryDto query);
 }
