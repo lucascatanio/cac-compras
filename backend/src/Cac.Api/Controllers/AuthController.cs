@@ -36,21 +36,21 @@ public sealed class AuthController : ControllerBase
     {
         // DefaultInboundClaimTypeMap limpo em Program.cs:
         // claims chegam com os nomes originais do JWT.
-        var idRaw        = User.FindFirstValue(JwtRegisteredClaimNames.Sub);
-        var username     = User.FindFirstValue(JwtRegisteredClaimNames.UniqueName) ?? string.Empty;
-        var nomeCompleto = User.FindFirstValue("nome")        ?? string.Empty;
-        var perfilNome   = User.FindFirstValue("perfil_nome") ?? string.Empty;
-        var perfilCodigo = User.FindFirstValue("role")        ?? string.Empty;
+        var idRaw = User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+        var username = User.FindFirstValue(JwtRegisteredClaimNames.UniqueName) ?? string.Empty;
+        var nomeCompleto = User.FindFirstValue("nome") ?? string.Empty;
+        var perfilNome = User.FindFirstValue("perfil_nome") ?? string.Empty;
+        var perfilCodigo = User.FindFirstValue("role") ?? string.Empty;
 
         if (!int.TryParse(idRaw, out var id))
             return Unauthorized(new { erro = "Token invalido." });
 
         return Ok(new UsuarioLogadoDto(
-            Id:           id,
+            Id: id,
             NomeCompleto: nomeCompleto,
-            Username:     username,
+            Username: username,
             PerfilCodigo: perfilCodigo,
-            PerfilNome:   perfilNome
+            PerfilNome: perfilNome
         ));
     }
 }
