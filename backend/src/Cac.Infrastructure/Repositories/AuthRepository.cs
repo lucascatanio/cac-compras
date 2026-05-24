@@ -17,8 +17,6 @@ public sealed class AuthRepository : IAuthRepository
         _connectionFactory = connectionFactory;
     }
 
-    // Fonte: cac_database.sql
-    // Procedure: sp_BuscarUsuarioPorUsername
     // Parâmetro: @username VARCHAR(50)
     // Retorna: id_usuario, username, senha_hash, nome_completo, email, ativo,
     //          perfil_codigo, perfil_nome
@@ -34,8 +32,7 @@ public sealed class AuthRepository : IAuthRepository
         );
     }
 
-    // Fonte: cac_database.sql
-    // Procedure: sp_RegistrarUltimoLogin
+
     // Parâmetro: @id_usuario INT
     public async Task RegistrarUltimoLoginAsync(int idUsuario)
     {
