@@ -11,6 +11,8 @@ import ProdutosListPage from '@/features/produtos/ProdutosListPage'
 import ProdutoFormPage from '@/features/produtos/ProdutoFormPage'
 import SetoresListPage from '@/features/setores/SetoresListPage'
 import SetorFormPage from '@/features/setores/SetorFormPage'
+import UsuariosListPage from '@/features/usuarios/UsuariosListPage'
+import UsuarioFormPage from '@/features/usuarios/UsuarioFormPage'
 
 /** Bloqueia rotas que exigem login */
 function RequireAuth() {
@@ -32,6 +34,8 @@ const fornecedoresEscritaRoles = ['COMPRADOR', 'GERENTE_COMPRAS', 'TI']
 const gruposEscritaRoles = ['ALMOXARIFE', 'GERENTE_COMPRAS', 'TI']
 
 const setoresEscritaRoles = ['GERENTE_COMPRAS', 'TI']
+
+const usuariosRoles = ['TI']
 
 const produtosLeituraRoles = ['COMPRADOR', 'ALMOXARIFE', 'GESTOR_SETOR', 'GERENTE_COMPRAS', 'TI']
 const produtosEscritaRoles = ['ALMOXARIFE', 'GERENTE_COMPRAS', 'TI']
@@ -88,6 +92,14 @@ export const router = createBrowserRouter([
             children: [
               { path: '/produtos/novo', element: <ProdutoFormPage /> },
               { path: '/produtos/:id', element: <ProdutoFormPage /> },
+            ],
+          },
+          {
+            element: <RequireRole roles={usuariosRoles} />,
+            children: [
+              { path: '/usuarios', element: <UsuariosListPage /> },
+              { path: '/usuarios/novo', element: <UsuarioFormPage /> },
+              { path: '/usuarios/:id', element: <UsuarioFormPage /> },
             ],
           },
         ],

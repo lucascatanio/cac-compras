@@ -200,3 +200,61 @@ export interface SetorUpdateRequest {
   nome: string
   descricao?: string | null
 }
+
+export interface PerfilListItem {
+  idPerfil: number
+  codigo: string
+  nome: string
+  descricao: string | null
+}
+
+export interface UsuarioListItem {
+  idUsuario: number
+  username: string
+  nomeCompleto: string
+  email: string | null
+  ativo: boolean
+  dataCriacao: string
+  ultimoLogin: string | null
+  perfilCodigo: string
+  perfilNome: string
+}
+
+export interface UsuarioDetail {
+  idUsuario: number
+  username: string
+  nomeCompleto: string
+  email: string | null
+  ativo: boolean
+  dataCriacao: string
+  ultimoLogin: string | null
+  idPerfil: number
+  perfilCodigo: string
+  perfilNome: string
+}
+
+export interface UsuarioListParams {
+  ativo?: boolean
+  codigoPerfil?: string
+  busca?: string
+  pagina: number
+  tamanhoPagina: number
+}
+
+export interface UsuarioCreateRequest {
+  username: string
+  senha: string
+  nomeCompleto: string
+  email?: string | null
+  codigoPerfil: string
+}
+
+export interface UsuarioUpdateRequest {
+  nomeCompleto: string
+  email?: string | null
+  codigoPerfil: string
+}
+
+export interface UsuarioChangePasswordRequest {
+  novaSenha: string
+}

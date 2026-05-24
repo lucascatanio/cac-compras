@@ -76,6 +76,10 @@ builder.Services.AddScoped<IProdutoRepository, ProdutoRepository>();
 builder.Services.AddScoped<ProdutoService>();
 builder.Services.AddScoped<ISetorRepository, SetorRepository>();
 builder.Services.AddScoped<SetorService>();
+builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
+builder.Services.AddScoped<UsuarioService>();
+builder.Services.AddScoped<IPerfilRepository, PerfilRepository>();
+builder.Services.AddScoped<PerfilService>();
 
 builder.Services.AddHostedService<DatabaseWarmupService>();
 
