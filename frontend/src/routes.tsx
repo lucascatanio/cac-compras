@@ -13,6 +13,9 @@ import SetoresListPage from '@/features/setores/SetoresListPage'
 import SetorFormPage from '@/features/setores/SetorFormPage'
 import UsuariosListPage from '@/features/usuarios/UsuariosListPage'
 import UsuarioFormPage from '@/features/usuarios/UsuarioFormPage'
+import EntradasListPage from '@/features/entradas/EntradasListPage'
+import EntradaFormPage from '@/features/entradas/EntradaFormPage'
+import EntradaDetailPage from '@/features/entradas/EntradaDetailPage'
 
 /** Bloqueia rotas que exigem login */
 function RequireAuth() {
@@ -36,6 +39,8 @@ const gruposEscritaRoles = ['ALMOXARIFE', 'GERENTE_COMPRAS', 'TI']
 const setoresEscritaRoles = ['GERENTE_COMPRAS', 'TI']
 
 const usuariosRoles = ['TI']
+
+const entradasRoles = ['COMPRADOR', 'ALMOXARIFE', 'GERENTE_COMPRAS', 'TI']
 
 const produtosLeituraRoles = ['COMPRADOR', 'ALMOXARIFE', 'GESTOR_SETOR', 'GERENTE_COMPRAS', 'TI']
 const produtosEscritaRoles = ['ALMOXARIFE', 'GERENTE_COMPRAS', 'TI']
@@ -100,6 +105,14 @@ export const router = createBrowserRouter([
               { path: '/usuarios', element: <UsuariosListPage /> },
               { path: '/usuarios/novo', element: <UsuarioFormPage /> },
               { path: '/usuarios/:id', element: <UsuarioFormPage /> },
+            ],
+          },
+          {
+            element: <RequireRole roles={entradasRoles} />,
+            children: [
+              { path: '/entradas', element: <EntradasListPage /> },
+              { path: '/entradas/nova', element: <EntradaFormPage /> },
+              { path: '/entradas/:id', element: <EntradaDetailPage /> },
             ],
           },
         ],

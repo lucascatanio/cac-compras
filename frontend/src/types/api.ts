@@ -258,3 +258,56 @@ export interface UsuarioUpdateRequest {
 export interface UsuarioChangePasswordRequest {
   novaSenha: string
 }
+
+export interface EntradaListItem {
+  idEntrada: number
+  dataEntrada: string
+  numeroNotaFiscal: string | null
+  observacao: string | null
+  idFornecedor: number
+  fornecedor: string
+  qtdItens: number
+  valorTotal: number | null
+}
+
+export interface EntradaItem {
+  idItemEntrada: number
+  idProduto: number
+  produto: string
+  unidadeMedida: string
+  quantidade: number
+  precoUnitario: number
+  valorTotal: number
+}
+
+export interface EntradaDetail {
+  idEntrada: number
+  dataEntrada: string
+  numeroNotaFiscal: string | null
+  observacao: string | null
+  idFornecedor: number
+  fornecedor: string
+  cnpj: string
+  itens: EntradaItem[]
+}
+
+export interface EntradaListParams {
+  dataInicio?: string
+  dataFim?: string
+  idFornecedor?: number
+  pagina: number
+  tamanhoPagina: number
+}
+
+export interface ItemEntradaRequest {
+  idProduto: number
+  quantidade: number
+  precoUnitario: number
+}
+
+export interface RegistrarEntradaRequest {
+  idFornecedor: number
+  numeroNotaFiscal?: string | null
+  observacao?: string | null
+  itens: ItemEntradaRequest[]
+}
