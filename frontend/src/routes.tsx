@@ -19,6 +19,11 @@ import EntradaDetailPage from '@/features/entradas/EntradaDetailPage'
 import SaidasListPage from '@/features/saidas/SaidasListPage'
 import SaidaFormPage from '@/features/saidas/SaidaFormPage'
 import SaidaDetailPage from '@/features/saidas/SaidaDetailPage'
+import ConsumoPorSetorPage from '@/features/relatorios/ConsumoPorSetorPage'
+import FichaProdutoPage from '@/features/relatorios/FichaProdutoPage'
+import FornecedoresPorProdutoPage from '@/features/relatorios/FornecedoresPorProdutoPage'
+import ProdutosEmFaltaPage from '@/features/relatorios/ProdutosEmFaltaPage'
+import MenorPrecoPage from '@/features/relatorios/MenorPrecoPage'
 
 /** Bloqueia rotas que exigem login */
 function RequireAuth() {
@@ -45,6 +50,12 @@ const usuariosRoles = ['TI']
 
 const entradasRoles = ['COMPRADOR', 'ALMOXARIFE', 'GERENTE_COMPRAS', 'TI']
 const saidasRoles = ['ALMOXARIFE', 'GESTOR_SETOR', 'GERENTE_COMPRAS', 'TI']
+
+const r1Roles = ['GESTOR_SETOR', 'GERENTE_COMPRAS', 'DIRETOR', 'FINANCEIRO', 'TI']
+const r2Roles = ['COMPRADOR', 'ALMOXARIFE', 'GERENTE_COMPRAS', 'FINANCEIRO', 'TI']
+const r3Roles = ['COMPRADOR', 'ALMOXARIFE', 'GERENTE_COMPRAS', 'TI']
+const r4Roles = ['COMPRADOR', 'ALMOXARIFE', 'GERENTE_COMPRAS', 'DIRETOR', 'TI']
+const r5Roles = ['COMPRADOR', 'GERENTE_COMPRAS', 'FINANCEIRO', 'TI']
 
 const produtosLeituraRoles = ['COMPRADOR', 'ALMOXARIFE', 'GESTOR_SETOR', 'GERENTE_COMPRAS', 'TI']
 const produtosEscritaRoles = ['ALMOXARIFE', 'GERENTE_COMPRAS', 'TI']
@@ -125,6 +136,36 @@ export const router = createBrowserRouter([
               { path: '/saidas', element: <SaidasListPage /> },
               { path: '/saidas/nova', element: <SaidaFormPage /> },
               { path: '/saidas/:id', element: <SaidaDetailPage /> },
+            ],
+          },
+          {
+            element: <RequireRole roles={r1Roles} />,
+            children: [
+              { path: '/relatorios/consumo-por-setor', element: <ConsumoPorSetorPage /> },
+            ],
+          },
+          {
+            element: <RequireRole roles={r2Roles} />,
+            children: [
+              { path: '/relatorios/ficha-produto', element: <FichaProdutoPage /> },
+            ],
+          },
+          {
+            element: <RequireRole roles={r3Roles} />,
+            children: [
+              { path: '/relatorios/fornecedores-por-produto', element: <FornecedoresPorProdutoPage /> },
+            ],
+          },
+          {
+            element: <RequireRole roles={r4Roles} />,
+            children: [
+              { path: '/relatorios/produtos-em-falta', element: <ProdutosEmFaltaPage /> },
+            ],
+          },
+          {
+            element: <RequireRole roles={r5Roles} />,
+            children: [
+              { path: '/relatorios/menor-preco', element: <MenorPrecoPage /> },
             ],
           },
         ],

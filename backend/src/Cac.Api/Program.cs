@@ -84,6 +84,8 @@ builder.Services.AddScoped<IEntradaRepository, EntradaRepository>();
 builder.Services.AddScoped<EntradaService>();
 builder.Services.AddScoped<ISaidaRepository, SaidaRepository>();
 builder.Services.AddScoped<SaidaService>();
+builder.Services.AddScoped<IRelatorioRepository, RelatorioRepository>();
+builder.Services.AddScoped<RelatorioService>();
 
 builder.Services.AddHostedService<DatabaseWarmupService>();
 

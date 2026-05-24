@@ -359,3 +359,89 @@ export interface RegistrarSaidaRequest {
   observacao?: string | null
   itens: ItemSaidaRequest[]
 }
+
+// R1 — Consumo por Setor
+export interface ConsumoPorSetorItem {
+  idSetor: number
+  setor: string
+  idProduto: number
+  produto: string
+  grupo: string
+  qtdConsumida: number
+  valorConsumido: number
+}
+
+export interface ConsumoPorSetorParams {
+  idSetor?: number
+  idGrupo?: number
+  dataInicio?: string
+  dataFim?: string
+}
+
+// R2 — Ficha do Produto
+export interface FichaProdutoItem {
+  idProduto: number
+  produto: string
+  tipoMovimento: string
+  dataMovimento: string
+  quantidade: number
+  precoUnitario: number
+  valorTotal: number
+  fornecedorOuSetor: string
+  referencia: string | null
+}
+
+export interface FichaProdutoParams {
+  dataInicio?: string
+  dataFim?: string
+}
+
+// R3 — Fornecedores por Produto
+export interface FornecedoresPorProdutoItem {
+  idProduto: number
+  produto: string
+  grupo: string
+  idFornecedor: number
+  fornecedor: string
+  cnpj: string
+  telefone: string | null
+  email: string | null
+  associacaoAtiva: boolean
+}
+
+export interface FornecedoresPorProdutoParams {
+  idProduto?: number
+}
+
+// R4 — Produtos em Falta
+export interface ProdutosEmFaltaItem {
+  idProduto: number
+  produto: string
+  grupo: string
+  unidadeMedida: string
+  saldoAtual: number
+  estoqueMinimo: number
+  qtdEmFalta: number
+  precoMedio: number
+}
+
+export interface ProdutosEmFaltaParams {
+  idGrupo?: number
+}
+
+// R5 — Menor Preço por Produto
+export interface MenorPrecoPorProdutoItem {
+  idProduto: number
+  produto: string
+  grupo: string
+  idFornecedor: number
+  fornecedor: string
+  cnpj: string
+  telefone: string | null
+  menorPreco: number
+  dataUltimaCompra: string
+}
+
+export interface MenorPrecoPorProdutoParams {
+  idProduto?: number
+}
