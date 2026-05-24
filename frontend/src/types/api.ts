@@ -90,3 +90,30 @@ export interface DefinirAtivoRequest {
 export interface CreatedIdResponse {
   id: number
 }
+
+export interface GrupoListItem {
+  idGrupo: number
+  nome: string
+  descricao: string | null
+  qtdProdutosAtivos: number
+}
+
+export interface GrupoDetail {
+  idGrupo: number
+  nome: string
+  descricao: string | null
+}
+
+export interface GrupoListParams {
+  busca?: string
+}
+
+export interface GrupoCreateRequest {
+  nome: string
+  descricao?: string | null
+}
+
+export interface GrupoUpdateRequest {
+  nome: string
+  descricao?: string | null
+}

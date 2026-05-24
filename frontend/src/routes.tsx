@@ -5,6 +5,8 @@ import AppLayout from '@/components/layout/AppLayout'
 import DashboardPage from '@/features/dashboard/DashboardPage'
 import FornecedoresListPage from '@/features/fornecedores/FornecedoresListPage'
 import FornecedorFormPage from '@/features/fornecedores/FornecedorFormPage'
+import GruposListPage from '@/features/grupos/GruposListPage'
+import GrupoFormPage from '@/features/grupos/GrupoFormPage'
 
 /** Bloqueia rotas que exigem login */
 function RequireAuth() {
@@ -22,6 +24,8 @@ export function RequireRole({ roles }: { roles: string[] }) {
 
 const fornecedoresLeituraRoles = ['COMPRADOR', 'ALMOXARIFE', 'GERENTE_COMPRAS', 'TI']
 const fornecedoresEscritaRoles = ['COMPRADOR', 'GERENTE_COMPRAS', 'TI']
+
+const gruposEscritaRoles = ['ALMOXARIFE', 'GERENTE_COMPRAS', 'TI']
 
 export const router = createBrowserRouter([
   {
@@ -46,6 +50,14 @@ export const router = createBrowserRouter([
             children: [
               { path: '/fornecedores/novo', element: <FornecedorFormPage /> },
               { path: '/fornecedores/:id', element: <FornecedorFormPage /> },
+            ],
+          },
+          { path: '/grupos', element: <GruposListPage /> },
+          {
+            element: <RequireRole roles={gruposEscritaRoles} />,
+            children: [
+              { path: '/grupos/novo', element: <GrupoFormPage /> },
+              { path: '/grupos/:id', element: <GrupoFormPage /> },
             ],
           },
         ],
