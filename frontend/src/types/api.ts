@@ -117,3 +117,57 @@ export interface GrupoUpdateRequest {
   nome: string
   descricao?: string | null
 }
+
+export type StatusEstoque = 'EM_FALTA' | 'BAIXO' | 'OK'
+
+export interface ProdutoListItem {
+  idProduto: number
+  nome: string
+  descricao: string | null
+  unidadeMedida: string
+  saldo: number
+  estoqueMinimo: number
+  precoMedio: number
+  ativo: boolean
+  idGrupo: number
+  grupoNome: string
+  statusEstoque: StatusEstoque
+}
+
+export interface ProdutoDetail {
+  idProduto: number
+  idGrupo: number
+  grupoNome: string
+  nome: string
+  descricao: string | null
+  unidadeMedida: string
+  estoqueMinimo: number
+  saldo: number
+  precoMedio: number
+  ativo: boolean
+}
+
+export interface ProdutoListParams {
+  ativo?: boolean
+  idGrupo?: number
+  apenasEmFalta?: boolean
+  busca?: string
+  pagina: number
+  tamanhoPagina: number
+}
+
+export interface ProdutoCreateRequest {
+  idGrupo: number
+  nome: string
+  descricao?: string | null
+  unidadeMedida: string
+  estoqueMinimo?: number
+}
+
+export interface ProdutoUpdateRequest {
+  idGrupo: number
+  nome: string
+  descricao?: string | null
+  unidadeMedida: string
+  estoqueMinimo?: number
+}
