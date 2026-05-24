@@ -3,6 +3,8 @@ import { useAuthStore } from '@/stores/authStore'
 import LoginPage from '@/features/auth/LoginPage'
 import AppLayout from '@/components/layout/AppLayout'
 import DashboardPage from '@/features/dashboard/DashboardPage'
+import FornecedoresListPage from '@/features/fornecedores/FornecedoresListPage'
+import FornecedorFormPage from '@/features/fornecedores/FornecedorFormPage'
 
 /** Bloqueia rotas que exigem login */
 function RequireAuth() {
@@ -18,6 +20,9 @@ export function RequireRole({ roles }: { roles: string[] }) {
   return <Outlet />
 }
 
+const fornecedoresLeituraRoles = ['COMPRADOR', 'ALMOXARIFE', 'GERENTE_COMPRAS', 'TI']
+const fornecedoresEscritaRoles = ['COMPRADOR', 'GERENTE_COMPRAS', 'TI']
+
 export const router = createBrowserRouter([
   {
     path: '/login',
@@ -30,7 +35,19 @@ export const router = createBrowserRouter([
         element: <AppLayout />,
         children: [
           { path: '/', element: <DashboardPage /> },
-          // Fases 3-6: rotas de cadastros, movimentações, relatórios e auditoria
+          {
+            element: <RequireRole roles={fornecedoresLeituraRoles} />,
+            children: [
+              { path: '/fornecedores', element: <FornecedoresListPage /> },
+            ],
+          },
+          {
+            element: <RequireRole roles={fornecedoresEscritaRoles} />,
+            children: [
+              { path: '/fornecedores/novo', element: <FornecedorFormPage /> },
+              { path: '/fornecedores/:id', element: <FornecedorFormPage /> },
+            ],
+          },
         ],
       },
     ],
