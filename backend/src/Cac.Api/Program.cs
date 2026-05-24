@@ -1,4 +1,6 @@
+using Cac.Api.HealthChecks;
 using Cac.Api.Middleware;
+using Cac.Api.Services;
 using Cac.Application.Interfaces;
 using Cac.Application.Services;
 using Cac.Infrastructure.Auth;
@@ -14,7 +16,6 @@ using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 
 DefaultTypeMap.MatchNamesWithUnderscores = true;
-
 JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
@@ -23,9 +24,12 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddSingleton<IDbConnectionFactory>(_ => new DbConnectionFactory(connectionString));
 
 var jwtSection = builder.Configuration.GetSection("Jwt");
-var secretKey  = jwtSection["SecretKey"]  ?? throw new InvalidOperationException("Jwt:SecretKey nao configurado.");
-var issuer     = jwtSection["Issuer"]     ?? throw new InvalidOperationException("Jwt:Issuer nao configurado.");
-var audience   = jwtSection["Audience"]   ?? throw new InvalidOperationException("Jwt:Audience nao configurado.");
+var secretKey = jwtSection["SecretKey"]
+    ?? throw new InvalidOperationException("Jwt:SecretKey nao configurado.");
+var issuer = jwtSection["Issuer"]
+    ?? throw new InvalidOperationException("Jwt:Issuer nao configurado.");
+var audience = jwtSection["Audience"]
+    ?? throw new InvalidOperationException("Jwt:Audience nao configurado.");
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -33,16 +37,16 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         options.MapInboundClaims = false;
         options.TokenValidationParameters = new TokenValidationParameters
         {
-            ValidateIssuer           = true,
-            ValidateAudience         = true,
-            ValidateLifetime         = true,
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            ValidIssuer              = issuer,
-            ValidAudience            = audience,
-            IssuerSigningKey         = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
-            ClockSkew                = TimeSpan.Zero,
-            RoleClaimType            = "role",
-            NameClaimType            = JwtRegisteredClaimNames.Sub
+            ValidIssuer = issuer,
+            ValidAudience = audience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
+            ClockSkew = TimeSpan.Zero,
+            RoleClaimType = "role",
+            NameClaimType = JwtRegisteredClaimNames.Sub
         };
     });
 
@@ -65,6 +69,12 @@ builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 builder.Services.AddScoped<AuthService>();
 
+builder.Services.AddHostedService<DatabaseWarmupService>();
+
+builder.Services
+    .AddHealthChecks()
+    .AddCheck<DatabaseHealthCheck>("database");
+
 builder.Services.AddControllers();
 
 builder.Services.AddEndpointsApiExplorer();
@@ -74,12 +84,12 @@ builder.Services.AddSwaggerGen(options =>
 
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Name         = "Authorization",
-        Type         = SecuritySchemeType.Http,
-        Scheme       = "bearer",
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
         BearerFormat = "JWT",
-        In           = ParameterLocation.Header,
-        Description  = "Informe o token JWT obtido no login."
+        In = ParameterLocation.Header,
+        Description = "Informe o token JWT obtido no login."
     });
 
     options.AddSecurityRequirement(new OpenApiSecurityRequirement
@@ -87,14 +97,16 @@ builder.Services.AddSwaggerGen(options =>
         {
             new OpenApiSecurityScheme
             {
-                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
             },
             Array.Empty<string>()
         }
     });
 });
-
-builder.Services.AddHealthChecks();
 
 var app = builder.Build();
 
@@ -109,7 +121,9 @@ if (app.Environment.IsDevelopment())
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
+
 app.MapControllers();
 app.MapHealthChecks("/health");
+app.MapHealthChecks("/health/db");
 
 app.Run();

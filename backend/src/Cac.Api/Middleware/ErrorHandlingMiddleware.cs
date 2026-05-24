@@ -11,7 +11,7 @@ public sealed class ErrorHandlingMiddleware
 
     public ErrorHandlingMiddleware(RequestDelegate next, ILogger<ErrorHandlingMiddleware> logger)
     {
-        _next   = next;
+        _next = next;
         _logger = logger;
     }
 
@@ -21,9 +21,18 @@ public sealed class ErrorHandlingMiddleware
         {
             await _next(context);
         }
+        catch (SqlException ex) when (IsConnectionTimeout(ex))
+        {
+            _logger.LogError(ex, "Timeout de conexão com o banco na requisição {Method} {Path}",
+                context.Request.Method, context.Request.Path);
+
+            await WriteErrorAsync(
+                context,
+                HttpStatusCode.ServiceUnavailable,
+                "O banco de dados demorou para responder. Tente novamente em instantes.");
+        }
         catch (SqlException ex) when (ex.Class >= 16)
         {
-            // RAISERROR
             await WriteErrorAsync(context, HttpStatusCode.BadRequest, ex.Message);
         }
         catch (Exception ex)
@@ -31,21 +40,27 @@ public sealed class ErrorHandlingMiddleware
             _logger.LogError(ex, "Erro inesperado na requisição {Method} {Path}",
                 context.Request.Method, context.Request.Path);
 
-            await WriteErrorAsync(context, HttpStatusCode.InternalServerError,
+            await WriteErrorAsync(
+                context,
+                HttpStatusCode.InternalServerError,
                 "Ocorreu um erro interno. Tente novamente mais tarde.");
         }
     }
 
+    private static bool IsConnectionTimeout(SqlException ex)
+    {
+        return ex.Number == -2;
+    }
+
     private static async Task WriteErrorAsync(HttpContext context, HttpStatusCode status, string message)
     {
-        context.Response.StatusCode      = (int)status;
-        context.Response.ContentType     = "application/json; charset=utf-8";
+        context.Response.StatusCode = (int)status;
+        context.Response.ContentType = "application/json; charset=utf-8";
         context.Response.Headers.CacheControl = "no-cache";
 
         var body = JsonSerializer.Serialize(
             new { erro = message },
-            new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }
-        );
+            new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
 
         await context.Response.WriteAsync(body);
     }

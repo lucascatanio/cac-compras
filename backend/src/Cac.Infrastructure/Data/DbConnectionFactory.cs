@@ -14,7 +14,15 @@ public sealed class DbConnectionFactory : IDbConnectionFactory
 
     public DbConnectionFactory(string connectionString)
     {
-        _connectionString = connectionString;
+        var builder = new SqlConnectionStringBuilder(connectionString)
+        {
+            ConnectTimeout = Math.Max(new SqlConnectionStringBuilder(connectionString).ConnectTimeout, 60),
+            Pooling = true,
+            MinPoolSize = 1,
+            MaxPoolSize = 100
+        };
+
+        _connectionString = builder.ConnectionString;
     }
 
     public IDbConnection CreateConnection()

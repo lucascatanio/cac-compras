@@ -8,6 +8,8 @@ namespace Cac.Infrastructure.Repositories;
 
 public sealed class AuthRepository : IAuthRepository
 {
+    private const int CommandTimeoutInSeconds = 60;
+
     private readonly IDbConnectionFactory _connectionFactory;
 
     public AuthRepository(IDbConnectionFactory connectionFactory)
@@ -15,7 +17,8 @@ public sealed class AuthRepository : IAuthRepository
         _connectionFactory = connectionFactory;
     }
 
-    // sp_BuscarUsuarioPorUsername
+    // Fonte: cac_database.sql
+    // Procedure: sp_BuscarUsuarioPorUsername
     // Parâmetro: @username VARCHAR(50)
     // Retorna: id_usuario, username, senha_hash, nome_completo, email, ativo,
     //          perfil_codigo, perfil_nome
@@ -26,11 +29,13 @@ public sealed class AuthRepository : IAuthRepository
         return await connection.QuerySingleOrDefaultAsync<Usuario>(
             "sp_BuscarUsuarioPorUsername",
             new { username },
-            commandType: CommandType.StoredProcedure
+            commandType: CommandType.StoredProcedure,
+            commandTimeout: CommandTimeoutInSeconds
         );
     }
 
-    // sp_RegistrarUltimoLogin
+    // Fonte: cac_database.sql
+    // Procedure: sp_RegistrarUltimoLogin
     // Parâmetro: @id_usuario INT
     public async Task RegistrarUltimoLoginAsync(int idUsuario)
     {
@@ -39,7 +44,8 @@ public sealed class AuthRepository : IAuthRepository
         await connection.ExecuteAsync(
             "sp_RegistrarUltimoLogin",
             new { id_usuario = idUsuario },
-            commandType: CommandType.StoredProcedure
+            commandType: CommandType.StoredProcedure,
+            commandTimeout: CommandTimeoutInSeconds
         );
     }
 }
