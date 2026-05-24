@@ -171,3 +171,32 @@ export interface ProdutoUpdateRequest {
   unidadeMedida: string
   estoqueMinimo?: number
 }
+
+export interface SetorListItem {
+  idSetor: number
+  nome: string
+  descricao: string | null
+  ativo: boolean
+}
+
+export interface SetorDetail {
+  idSetor: number
+  nome: string
+  descricao: string | null
+  ativo: boolean
+}
+
+export interface SetorListParams {
+  ativo?: boolean
+  busca?: string
+}
+
+export interface SetorCreateRequest {
+  nome: string
+  descricao?: string | null
+}
+
+export interface SetorUpdateRequest {
+  nome: string
+  descricao?: string | null
+}
