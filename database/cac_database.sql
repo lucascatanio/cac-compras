@@ -1,62 +1,4 @@
--- ============================================================================
--- ============================================================================
---
---   CAC LTDA. — SISTEMA DE COMPRAS
---   BANCO DE DADOS — ESQUEMA CONSOLIDADO E AUTORITATIVO
---   Versão 2 (pós-correções da 1ª entrega)
---
--- ============================================================================
---
---   Este é o ARQUIVO ÚNICO E DEFINITIVO do banco de dados. Ele reúne, em
---   ordem de execução, os cinco módulos do projeto. Qualquer código de
---   aplicação que toque o banco deve usar ESTE arquivo como referência.
---
---   AMBIENTE:
---     - Azure SQL Database, compatibility level 150 (SQL Server 2019)
---     - Conecte-se ao database de destino antes de executar
---     - Execute o arquivo inteiro, de cima para baixo, em um banco limpo
---
---   CONTEÚDO (12 tabelas · 47 procedures · 10 views · 3 triggers · 2 TVPs):
---     MÓDULO 1 — Esquema, índices, TVPs, procedures base, views R1-R5
---     MÓDULO 2 — Relatórios R6 e R7
---     MÓDULO 3 — Log de auditoria, triggers, relatórios R8 e R9
---     MÓDULO 4 — Autenticação: tabelas Perfil e Usuario, procedures de login
---     MÓDULO 5 — Procedures de consulta, edição, inativação e relatórios
---
---   A ORDEM IMPORTA: o Módulo 5 referencia views e tabelas criadas nos
---   módulos anteriores. Não reordene.
---
--- ============================================================================
--- ============================================================================
-
-
-
-
--- ############################################################################
--- ###  MÓDULO 1 de 5 — ESQUEMA, PROCEDURES BASE, TVPs E RELATÓRIOS R1-R5
--- ############################################################################
-
-
--- ============================================================
--- CAC Ltda. — Sistema de Compras
--- DDL v2.0  (refatorado após feedback do professor)
--- SQL Server 2019/2021
--- ============================================================
--- MUDANÇAS vs v1.0:
---   1. Entrada  -> EntradaCabecalho + ItemEntrada
---   2. Saida    -> SaidaCabecalho   + ItemSaida
---   3. Fornecedor.endereco -> 7 campos atômicos (3FN/1FN)
---   4. SetorGrupo eliminada -> view derivada de movimentos reais
---   5. SPs de movimentação reescritas com TVP (Table-Valued Parameter)
---      permitindo registrar uma nota inteira em uma única transação
--- ============================================================
-
-
--- ============================================================
--- TABELAS DE CADASTRO
--- ============================================================
-
-CREATE TABLE Grupo (
+﻿CREATE TABLE Grupo (
     id_grupo    INT          IDENTITY(1,1) NOT NULL,
     nome        VARCHAR(100) NOT NULL,
     descricao   VARCHAR(200) NULL,
@@ -73,16 +15,14 @@ CREATE TABLE Setor (
 );
 GO
 
--- ------------------------------------------------------------
--- Fornecedor: endereço DECOMPOSTO (atende 1FN/3FN)
--- ------------------------------------------------------------
+
 CREATE TABLE Fornecedor (
     id_fornecedor   INT          IDENTITY(1,1) NOT NULL,
     razao_social    VARCHAR(150) NOT NULL,
     cnpj            CHAR(14)     NOT NULL,
     telefone        VARCHAR(20)  NULL,
     email           VARCHAR(100) NULL,
-    -- endereço atômico
+
     logradouro      VARCHAR(150) NULL,
     numero          VARCHAR(10)  NULL,
     complemento     VARCHAR(50)  NULL,
@@ -128,21 +68,7 @@ CREATE TABLE FornecedorProduto (
 );
 GO
 
--- ------------------------------------------------------------
--- SetorGrupo: ELIMINADA
--- Substituída pela view vw_SetorGrupo (no final), que deriva a
--- relação Setor x Grupo do consumo real (ItemSaida), eliminando
--- redundância e a interpretação ambígua de "grupo pertence a setor".
--- ------------------------------------------------------------
 
-
--- ============================================================
--- TABELAS DE MOVIMENTAÇÃO  (cabeçalho + itens)
--- ============================================================
-
--- ------------------------------------------------------------
--- ENTRADA: cabeçalho (1 NF) + itens (N produtos da mesma NF)
--- ------------------------------------------------------------
 CREATE TABLE EntradaCabecalho (
     id_entrada          INT          IDENTITY(1,1) NOT NULL,
     id_fornecedor       INT          NOT NULL,
@@ -168,9 +94,7 @@ CREATE TABLE ItemEntrada (
 );
 GO
 
--- ------------------------------------------------------------
--- SAÍDA: cabeçalho (1 requisição) + itens (N produtos)
--- ------------------------------------------------------------
+
 CREATE TABLE SaidaCabecalho (
     id_saida    INT          IDENTITY(1,1) NOT NULL,
     id_setor    INT          NOT NULL,
@@ -186,7 +110,7 @@ CREATE TABLE ItemSaida (
     id_saida               INT           NOT NULL,
     id_produto             INT           NOT NULL,
     quantidade             DECIMAL(10,3) NOT NULL,
-    preco_medio_unitario   DECIMAL(10,4) NOT NULL,  -- snapshot histórico do PM
+    preco_medio_unitario   DECIMAL(10,4) NOT NULL,
     CONSTRAINT PK_ItemSaida         PRIMARY KEY CLUSTERED (id_item_saida),
     CONSTRAINT FK_ItemSaida_Saida   FOREIGN KEY (id_saida)   REFERENCES SaidaCabecalho(id_saida),
     CONSTRAINT FK_ItemSaida_Produto FOREIGN KEY (id_produto) REFERENCES Produto(id_produto),
@@ -196,9 +120,6 @@ CREATE TABLE ItemSaida (
 GO
 
 
--- ============================================================
--- ÍNDICES
--- ============================================================
 CREATE NONCLUSTERED INDEX IDX_Produto_Grupo         ON Produto(id_grupo);
 CREATE NONCLUSTERED INDEX IDX_FornProd_Produto      ON FornecedorProduto(id_produto);
 CREATE NONCLUSTERED INDEX IDX_FornProd_Fornecedor   ON FornecedorProduto(id_fornecedor);
@@ -213,9 +134,6 @@ CREATE NONCLUSTERED INDEX IDX_ItemSaida_Produto     ON ItemSaida(id_produto);
 GO
 
 
--- ============================================================
--- TVPs (Table-Valued Parameters) p/ as SPs de movimentação
--- ============================================================
 CREATE TYPE TVP_ItensEntrada AS TABLE (
     id_produto     INT           NOT NULL,
     quantidade     DECIMAL(10,3) NOT NULL,
@@ -229,10 +147,6 @@ CREATE TYPE TVP_ItensSaida AS TABLE (
 );
 GO
 
-
--- ============================================================
--- STORED PROCEDURES — CADASTRO
--- ============================================================
 
 CREATE PROCEDURE sp_CadastrarFornecedor
     @razao_social VARCHAR(150),
@@ -344,23 +258,6 @@ END;
 GO
 
 
--- ============================================================
--- STORED PROCEDURES — MOVIMENTAÇÃO (refatoradas com TVP)
--- ============================================================
-
--- ------------------------------------------------------------
--- sp_RegistrarEntrada
---   Recebe 1 cabeçalho + N itens via TVP.
---   Faz tudo em uma única transação:
---     1) valida fornecedor e itens
---     2) insere EntradaCabecalho
---     3) insere ItemEntrada (todos os itens)
---     4) atualiza saldo e preço médio ponderado para cada
---        produto envolvido (agrupado caso o mesmo produto venha
---        mais de uma vez no mesmo cabeçalho)
---   Fórmula do PM ponderado:
---     novo_pm = (saldo*pm + soma(qtd*preco)) / (saldo + soma(qtd))
--- ------------------------------------------------------------
 CREATE PROCEDURE sp_RegistrarEntrada
     @id_fornecedor      INT,
     @numero_nota_fiscal VARCHAR(50)  = NULL,
@@ -374,7 +271,7 @@ BEGIN
 
     BEGIN TRY
 
-        -- Validações --------------------------------------------------
+
         IF NOT EXISTS (SELECT 1 FROM Fornecedor WHERE id_fornecedor = @id_fornecedor AND ativo = 1)
         BEGIN
             RAISERROR('Fornecedor não encontrado ou inativo.', 16, 1);
@@ -405,20 +302,18 @@ BEGIN
             ROLLBACK TRANSACTION; RETURN;
         END
 
-        -- Cabeçalho ---------------------------------------------------
+
         INSERT INTO EntradaCabecalho (id_fornecedor, numero_nota_fiscal, observacao)
         VALUES (@id_fornecedor, @numero_nota_fiscal, @observacao);
 
         DECLARE @id_entrada INT = SCOPE_IDENTITY();
 
-        -- Itens -------------------------------------------------------
+
         INSERT INTO ItemEntrada (id_entrada, id_produto, quantidade, preco_unitario)
         SELECT @id_entrada, id_produto, quantidade, preco_unitario
         FROM @itens;
 
-        -- Recálculo de saldo e PM ponderado --------------------------
-        -- Agrupado por produto para suportar o mesmo produto aparecer
-        -- em múltiplas linhas do TVP.
+
         ;WITH AggItens AS (
             SELECT
                 id_produto,
@@ -447,12 +342,7 @@ BEGIN
 END;
 GO
 
--- ------------------------------------------------------------
--- sp_RegistrarSaida
---   1 cabeçalho + N itens, transacional.
---   Bloqueia se algum item levar o saldo abaixo de zero.
---   Cada item registra snapshot do preço médio vigente.
--- ------------------------------------------------------------
+
 CREATE PROCEDURE sp_RegistrarSaida
     @id_setor    INT,
     @observacao  VARCHAR(300) = NULL,
@@ -465,7 +355,7 @@ BEGIN
 
     BEGIN TRY
 
-        -- Validações --------------------------------------------------
+
         IF NOT EXISTS (SELECT 1 FROM Setor WHERE id_setor = @id_setor AND ativo = 1)
         BEGIN
             RAISERROR('Setor não encontrado ou inativo.', 16, 1);
@@ -484,7 +374,7 @@ BEGIN
             ROLLBACK TRANSACTION; RETURN;
         END
 
-        -- Verifica saldo p/ todos os produtos (somando duplicatas)
+
         IF EXISTS (
             SELECT 1
             FROM (
@@ -500,13 +390,13 @@ BEGIN
             ROLLBACK TRANSACTION; RETURN;
         END
 
-        -- Cabeçalho ---------------------------------------------------
+
         INSERT INTO SaidaCabecalho (id_setor, observacao)
         VALUES (@id_setor, @observacao);
 
         DECLARE @id_saida INT = SCOPE_IDENTITY();
 
-        -- Itens (com snapshot do PM atual de cada produto) ------------
+
         INSERT INTO ItemSaida (id_saida, id_produto, quantidade, preco_medio_unitario)
         SELECT
             @id_saida,
@@ -516,7 +406,7 @@ BEGIN
         FROM @itens i
         INNER JOIN Produto p ON p.id_produto = i.id_produto;
 
-        -- Decrementa saldo --------------------------------------------
+
         ;WITH AggItens AS (
             SELECT id_produto, SUM(quantidade) AS qtd_total
             FROM @itens
@@ -540,13 +430,6 @@ END;
 GO
 
 
--- ============================================================
--- VIEWS DE RELATÓRIO  (atualizadas para o novo esquema)
--- ============================================================
-
--- ------------------------------------------------------------
--- Relatório 1 — Consumo por setor
--- ------------------------------------------------------------
 CREATE VIEW vw_ConsumoPorSetor AS
     SELECT
         s.id_setor,
@@ -564,9 +447,7 @@ CREATE VIEW vw_ConsumoPorSetor AS
     GROUP BY s.id_setor, s.nome, p.id_produto, p.nome, g.nome;
 GO
 
--- ------------------------------------------------------------
--- Relatório 2 — Ficha do produto (entradas + saídas unificadas)
--- ------------------------------------------------------------
+
 CREATE VIEW vw_FichaProduto AS
     SELECT
         p.id_produto,
@@ -601,9 +482,7 @@ CREATE VIEW vw_FichaProduto AS
     INNER JOIN Setor          s  ON s.id_setor     = sc.id_setor;
 GO
 
--- ------------------------------------------------------------
--- Relatório 3 — Fornecedores por produto (inalterado)
--- ------------------------------------------------------------
+
 CREATE VIEW vw_FornecedoresPorProduto AS
     SELECT
         p.id_produto,
@@ -622,9 +501,7 @@ CREATE VIEW vw_FornecedoresPorProduto AS
     WHERE p.ativo = 1 AND f.ativo = 1;
 GO
 
--- ------------------------------------------------------------
--- Relatório 4 — Produtos em falta (inalterado)
--- ------------------------------------------------------------
+
 CREATE VIEW vw_ProdutosEmFalta AS
     SELECT
         p.id_produto,
@@ -640,10 +517,7 @@ CREATE VIEW vw_ProdutosEmFalta AS
     WHERE p.ativo = 1 AND p.saldo < p.estoque_minimo;
 GO
 
--- ------------------------------------------------------------
--- Relatório 5 — Menor preço de compra por produto
--- (refeito sobre EntradaCabecalho + ItemEntrada)
--- ------------------------------------------------------------
+
 CREATE VIEW vw_MenorPrecoPorProduto AS
     WITH UltimoPrecoPorFornecedor AS (
         SELECT
@@ -685,11 +559,7 @@ CREATE VIEW vw_MenorPrecoPorProduto AS
     WHERE p.ativo = 1 AND f.ativo = 1;
 GO
 
--- ------------------------------------------------------------
--- vw_SetorGrupo  (SUBSTITUI a tabela eliminada)
--- Deriva, a partir das saídas reais, quais grupos cada setor
--- de fato consome. Mais fiel à realidade que um cadastro estático.
--- ------------------------------------------------------------
+
 CREATE VIEW vw_SetorGrupo AS
     SELECT DISTINCT
         s.id_setor,
@@ -704,69 +574,6 @@ CREATE VIEW vw_SetorGrupo AS
 GO
 
 
--- ============================================================
--- EXEMPLOS DE USO DAS SPs COM TVP
--- ============================================================
-/*
--- Entrada com 3 itens da mesma NF
-DECLARE @itens TVP_ItensEntrada;
-INSERT INTO @itens (id_produto, quantidade, preco_unitario) VALUES
-    (1, 100, 12.50),
-    (2,  50,  8.30),
-    (3,  20, 45.00);
-
-EXEC sp_RegistrarEntrada
-    @id_fornecedor      = 1,
-    @numero_nota_fiscal = 'NF-000123',
-    @observacao         = 'Compra mensal',
-    @itens              = @itens;
-
--- Saída com 2 itens (uma requisição do setor)
-DECLARE @saida TVP_ItensSaida;
-INSERT INTO @saida (id_produto, quantidade) VALUES
-    (1, 10),
-    (2,  5);
-
-EXEC sp_RegistrarSaida
-    @id_setor    = 1,
-    @observacao  = 'Requisição semanal',
-    @itens       = @saida;
-*/
-
-
--- ############################################################################
--- ###  MÓDULO 2 de 5 — RELATÓRIOS ADICIONAIS R6 E R7
--- ############################################################################
-
-
--- ============================================================
--- CAC Ltda. — Relatórios adicionais (v2.1)
--- Para rodar APÓS o cac_ddl_v2.sql
--- ============================================================
--- Atende ao feedback do professor:
---   "Poderiam ter criado relatório como produtos mais demandados,
---    histórico de preço de um produto, etc..."
--- ============================================================
-
-
--- ------------------------------------------------------------
--- RELATÓRIO 6 — Produtos Mais Demandados
--- ------------------------------------------------------------
--- SP parametrizada que devolve o Top N produtos mais consumidos.
---
--- Parâmetros (todos opcionais exceto @criterio que tem default):
---   @top_n        : quantos retornar (default 10)
---   @data_inicio  : filtra saídas a partir desta data
---   @data_fim     : filtra saídas até esta data
---   @id_grupo     : restringe a um grupo de produtos
---   @id_setor     : restringe a um setor consumidor
---   @criterio     : 'VALOR' (default) ou 'QUANTIDADE'
---
--- Retorna métricas combinadas — quantidade consumida, valor
--- consumido, número de setores que usaram, número de saídas,
--- primeira/última saída, saldo atual — para apoiar decisão
--- de compra e priorização.
--- ------------------------------------------------------------
 CREATE PROCEDURE sp_ProdutosMaisDemandados
     @top_n        INT          = 10,
     @data_inicio  DATETIME     = NULL,
@@ -803,7 +610,7 @@ BEGIN
         MAX(sc.data_saida)                              AS ultima_saida,
         p.saldo                                         AS saldo_atual,
         p.estoque_minimo,
-        -- alerta visual: se saldo < mínimo, sinaliza
+
         CASE
             WHEN p.saldo < p.estoque_minimo THEN 'EM FALTA'
             WHEN p.saldo < p.estoque_minimo * 1.5 THEN 'BAIXO'
@@ -831,25 +638,6 @@ END;
 GO
 
 
--- ------------------------------------------------------------
--- RELATÓRIO 7 — Comparativo de Preços entre Fornecedores
--- ------------------------------------------------------------
--- Para cada produto que tem mais de um fornecedor com histórico
--- de compra, mostra o último preço praticado por cada fornecedor
--- e como ele se posiciona vs:
---   - menor preço entre fornecedores do mesmo produto
---   - preço médio entre fornecedores do mesmo produto
---
--- Ferramenta de negociação: o Comprador identifica de imediato
--- onde estão as oportunidades de troca de fornecedor ou de
--- negociação direta com o atual.
---
--- Técnica: 2 CTEs encadeadas
---   UltimaCompra        — pega o preço da compra mais recente
---                         por (produto, fornecedor) usando ROW_NUMBER
---   EstatisticasProduto — calcula min/max/avg cruzando fornecedores
---                         do mesmo produto
--- ------------------------------------------------------------
 CREATE VIEW vw_ComparativoPrecosFornecedores AS
     WITH UltimaCompra AS (
         SELECT
@@ -889,9 +677,9 @@ CREATE VIEW vw_ComparativoPrecosFornecedores AS
         ep.menor_preco,
         ep.preco_medio,
         ep.qtd_fornecedores,
-        -- diferença absoluta para o menor preço
+
         uc.preco_unitario - ep.menor_preco                AS delta_vs_menor,
-        -- % acima do menor preço disponível
+
         CASE
             WHEN ep.menor_preco = 0 THEN NULL
             ELSE ROUND(
@@ -899,7 +687,7 @@ CREATE VIEW vw_ComparativoPrecosFornecedores AS
                 / ep.menor_preco * 100, 2
             )
         END                                                AS pct_acima_do_menor,
-        -- % vs preço médio entre fornecedores
+
         CASE
             WHEN ep.preco_medio = 0 THEN NULL
             ELSE ROUND(
@@ -907,7 +695,7 @@ CREATE VIEW vw_ComparativoPrecosFornecedores AS
                 / ep.preco_medio * 100, 2
             )
         END                                                AS pct_vs_media,
-        -- classificação rápida
+
         CASE
             WHEN uc.preco_unitario = ep.menor_preco THEN 'MELHOR PREÇO'
             WHEN uc.preco_unitario = ep.maior_preco THEN 'PIOR PREÇO'
@@ -924,80 +712,13 @@ CREATE VIEW vw_ComparativoPrecosFornecedores AS
 GO
 
 
--- ============================================================
--- EXEMPLOS DE USO
--- ============================================================
-/*
--- Top 10 produtos mais demandados por valor (default)
-EXEC sp_ProdutosMaisDemandados;
-
--- Top 5 do mês passado, por quantidade
-EXEC sp_ProdutosMaisDemandados
-    @top_n       = 5,
-    @data_inicio = '2026-04-01',
-    @data_fim    = '2026-04-30',
-    @criterio    = 'QUANTIDADE';
-
--- Top 20 do setor 3 (ex: Manutenção), só do grupo 1 (ex: Ferramentas)
-EXEC sp_ProdutosMaisDemandados
-    @top_n    = 20,
-    @id_grupo = 1,
-    @id_setor = 3,
-    @criterio = 'VALOR';
-
--- Ver onde tem espaço pra negociar preço
-SELECT *
-FROM vw_ComparativoPrecosFornecedores
-WHERE pct_acima_do_menor > 10        -- pagando 10%+ a mais que o menor
-  AND qtd_fornecedores  >  1         -- há alternativa real
-ORDER BY pct_acima_do_menor DESC;
-
--- Detalhe de um produto específico
-SELECT *
-FROM vw_ComparativoPrecosFornecedores
-WHERE id_produto = 42
-ORDER BY ultimo_preco;
-*/
-
-
--- ############################################################################
--- ###  MÓDULO 3 de 5 — AUDITORIA E RELATÓRIOS R8 E R9
--- ############################################################################
-
-
--- ============================================================
--- CAC Ltda. — Recursos avançados (v2.2)
--- Para rodar APÓS o cac_ddl_v2.sql e o cac_ddl_v2_1_relatorios.sql
--- ============================================================
--- Conteúdo:
---   1) Log de Auditoria  — tabela + triggers (Entrada, Saída, Produto)
---   2) vw_HistoricoPrecos — média móvel + delta vs compra anterior
---   3) vw_CurvaABC        — classificação A/B/C por valor consumido
--- ============================================================
-
-
--- ============================================================
--- 1) LOG DE AUDITORIA
--- ============================================================
--- Atende RNF12/RNF13 (rastreabilidade) e o stakeholder Auditoria
--- Externa. Captura inserções de movimentações e mudanças no
--- saldo/preço médio do Produto (que são os campos mais sensíveis
--- do sistema porque guiam todos os relatórios financeiros).
---
--- Estratégia:
---   - Tabela LogAuditoria com payload em JSON (NVARCHAR(MAX))
---   - Triggers AFTER em EntradaCabecalho, SaidaCabecalho e Produto
---   - Os triggers rodam dentro da mesma transação da SP, então se
---     a SP rollback, o log também rollback (consistência atômica)
--- ============================================================
-
 CREATE TABLE LogAuditoria (
     id_log           INT           IDENTITY(1,1) NOT NULL,
     tabela           VARCHAR(50)   NOT NULL,
-    operacao         VARCHAR(10)   NOT NULL,         -- INSERT, UPDATE, DELETE
+    operacao         VARCHAR(10)   NOT NULL,
     id_registro      INT           NOT NULL,
-    dados_anteriores NVARCHAR(MAX) NULL,             -- estado antes (JSON)
-    dados_novos      NVARCHAR(MAX) NULL,             -- estado depois (JSON)
+    dados_anteriores NVARCHAR(MAX) NULL,
+    dados_novos      NVARCHAR(MAX) NULL,
     usuario          VARCHAR(100)  NOT NULL DEFAULT SYSTEM_USER,
     data_hora        DATETIME      NOT NULL DEFAULT GETDATE(),
     CONSTRAINT PK_LogAuditoria PRIMARY KEY CLUSTERED (id_log)
@@ -1009,9 +730,6 @@ CREATE NONCLUSTERED INDEX IDX_Log_Registro    ON LogAuditoria(tabela, id_registr
 GO
 
 
--- ------------------------------------------------------------
--- Trigger: auditoria de EntradaCabecalho
--- ------------------------------------------------------------
 CREATE TRIGGER trg_Aud_EntradaCabecalho
 ON EntradaCabecalho
 AFTER INSERT
@@ -1033,9 +751,7 @@ BEGIN
 END;
 GO
 
--- ------------------------------------------------------------
--- Trigger: auditoria de SaidaCabecalho
--- ------------------------------------------------------------
+
 CREATE TRIGGER trg_Aud_SaidaCabecalho
 ON SaidaCabecalho
 AFTER INSERT
@@ -1056,13 +772,7 @@ BEGIN
 END;
 GO
 
--- ------------------------------------------------------------
--- Trigger: auditoria de Produto (saldo e preço médio)
--- ------------------------------------------------------------
--- Loga apenas quando saldo OU preco_medio efetivamente mudaram.
--- UPDATE() filtra rápido pelas colunas mencionadas na cláusula
--- SET; depois validamos a mudança real comparando inserted/deleted.
--- ------------------------------------------------------------
+
 CREATE TRIGGER trg_Aud_Produto
 ON Produto
 AFTER UPDATE
@@ -1095,22 +805,6 @@ END;
 GO
 
 
--- ============================================================
--- 2) vw_HistoricoPrecos — Histórico com média móvel e delta
--- ============================================================
--- Para cada (produto, fornecedor), traz a linha do tempo das
--- compras com duas métricas analíticas:
---   - media_movel_3_compras : média das últimas 3 compras
---   - delta_vs_anterior     : variação em R$ vs compra anterior
---
--- Útil para o Comprador e o Financeiro identificarem tendências
--- de aumento de preço antes de aprovar uma nova compra.
---
--- Técnicas:
---   - AVG OVER (PARTITION BY ... ROWS BETWEEN 2 PRECEDING AND
---     CURRENT ROW) → média móvel deslizante de 3 itens
---   - LAG() → valor da linha anterior dentro da mesma partição
--- ============================================================
 CREATE VIEW vw_HistoricoPrecos AS
     SELECT
         p.id_produto,
@@ -1121,18 +815,18 @@ CREATE VIEW vw_HistoricoPrecos AS
         ec.data_entrada,
         ie.preco_unitario,
         ie.quantidade,
-        -- média móvel das 3 últimas compras (deste produto/fornecedor)
+
         AVG(ie.preco_unitario) OVER (
             PARTITION BY ie.id_produto, ec.id_fornecedor
             ORDER BY ec.data_entrada
             ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
         ) AS media_movel_3_compras,
-        -- preço da compra imediatamente anterior (mesmo prod/forn)
+
         LAG(ie.preco_unitario) OVER (
             PARTITION BY ie.id_produto, ec.id_fornecedor
             ORDER BY ec.data_entrada
         ) AS preco_compra_anterior,
-        -- variação absoluta em relação à compra anterior
+
         ie.preco_unitario - LAG(ie.preco_unitario) OVER (
             PARTITION BY ie.id_produto, ec.id_fornecedor
             ORDER BY ec.data_entrada
@@ -1145,23 +839,6 @@ CREATE VIEW vw_HistoricoPrecos AS
 GO
 
 
--- ============================================================
--- 3) vw_CurvaABC — Classificação ABC por valor consumido
--- ============================================================
--- Princípio de Pareto aplicado ao estoque: classifica produtos em
---   A : acumulam até 80% do valor total consumido (foco máximo)
---   B : entre 80% e 95% (atenção média)
---   C : os 5% finais (controle simplificado)
---
--- Permite ao Gerente focar tempo/negociação nos produtos certos
--- em vez de tratar todos como igualmente importantes.
---
--- Técnicas:
---   - CTE para agregar consumo por produto
---   - CTE aninhada com 2 Window Functions:
---       SUM() OVER ()                          → total geral
---       SUM() OVER (ORDER BY ... UNBOUNDED PRECEDING) → acumulado ranqueado
--- ============================================================
 CREATE VIEW vw_CurvaABC AS
     WITH ConsumoTotal AS (
         SELECT
@@ -1180,9 +857,9 @@ CREATE VIEW vw_CurvaABC AS
     Ranking AS (
         SELECT
             ct.*,
-            -- total geral (cruza todos os produtos)
+
             SUM(valor_total_consumido) OVER ()              AS total_geral,
-            -- soma acumulada na ordem decrescente de valor
+
             SUM(valor_total_consumido) OVER (
                 ORDER BY valor_total_consumido DESC
                 ROWS UNBOUNDED PRECEDING
@@ -1195,17 +872,17 @@ CREATE VIEW vw_CurvaABC AS
         grupo,
         qtd_total_consumida,
         valor_total_consumido,
-        -- % do total geral que este produto representa sozinho
+
         CASE
             WHEN total_geral = 0 THEN 0
             ELSE ROUND(valor_total_consumido / total_geral * 100, 2)
         END                                                 AS pct_individual,
-        -- % acumulada até este produto (no ranking decrescente)
+
         CASE
             WHEN total_geral = 0 THEN 0
             ELSE ROUND(acumulado / total_geral * 100, 2)
         END                                                 AS pct_acumulado,
-        -- classificação ABC
+
         CASE
             WHEN total_geral = 0                       THEN 'N/A'
             WHEN acumulado / total_geral <= 0.80       THEN 'A'
@@ -1216,78 +893,9 @@ CREATE VIEW vw_CurvaABC AS
 GO
 
 
--- ============================================================
--- EXEMPLOS DE USO
--- ============================================================
-/*
--- Ver últimas movimentações sensíveis no Produto
-SELECT TOP 50 *
-FROM LogAuditoria
-WHERE tabela = 'Produto'
-ORDER BY data_hora DESC;
-
--- Auditar histórico completo de um produto específico
-SELECT *
-FROM LogAuditoria
-WHERE tabela = 'Produto' AND id_registro = 42
-ORDER BY data_hora;
-
--- Tendência de preço de um produto X em todos os fornecedores
-SELECT *
-FROM vw_HistoricoPrecos
-WHERE id_produto = 42
-ORDER BY fornecedor, data_entrada;
-
--- Apenas compras onde o preço aumentou vs a anterior
-SELECT *
-FROM vw_HistoricoPrecos
-WHERE delta_vs_anterior > 0
-ORDER BY delta_vs_anterior DESC;
-
--- Lista classe A (foco de gestão)
-SELECT *
-FROM vw_CurvaABC
-WHERE classe_abc = 'A'
-ORDER BY valor_total_consumido DESC;
-
--- Visão consolidada da curva
-SELECT
-    classe_abc,
-    COUNT(*)                         AS qtd_produtos,
-    SUM(valor_total_consumido)       AS valor_total,
-    MIN(pct_acumulado)               AS faixa_pct_inicio,
-    MAX(pct_acumulado)               AS faixa_pct_fim
-FROM vw_CurvaABC
-GROUP BY classe_abc
-ORDER BY classe_abc;
-*/
-
-
--- ############################################################################
--- ###  MÓDULO 4 de 5 — AUTENTICAÇÃO E PERFIS
--- ############################################################################
-
-
--- ============================================================
--- CAC Ltda. — Autenticação e Perfis (v2.3)
--- Para rodar APÓS cac_ddl_v2.sql
--- ============================================================
--- Adiciona:
---   - Tabela Perfil (com seed dos 7 perfis dos stakeholders)
---   - Tabela Usuario (com senha hasheada via bcrypt na API .NET)
---   - SPs de cadastro e busca para o fluxo de login
---
--- Importante: a API NÃO envia senha em texto puro ao banco.
--- O bcrypt roda em C# (BCrypt.Net-Next). A SP só armazena/lê o hash.
--- ============================================================
-
-
--- ============================================================
--- Tabela Perfil
--- ============================================================
 CREATE TABLE Perfil (
     id_perfil   INT          IDENTITY(1,1) NOT NULL,
-    codigo      VARCHAR(30)  NOT NULL,                 -- usado nas claims do JWT
+    codigo      VARCHAR(30)  NOT NULL,
     nome        VARCHAR(80)  NOT NULL,
     descricao   VARCHAR(200) NULL,
     CONSTRAINT PK_Perfil       PRIMARY KEY CLUSTERED (id_perfil),
@@ -1295,7 +903,7 @@ CREATE TABLE Perfil (
 );
 GO
 
--- Seed: 7 perfis da Etapa 1 (stakeholders internos do artigo)
+
 INSERT INTO Perfil (codigo, nome, descricao) VALUES
     ('COMPRADOR',       'Comprador',                'Registra compras e gerencia fornecedores'),
     ('ALMOXARIFE',      'Almoxarife',               'Controla entradas, saídas e estoque'),
@@ -1307,14 +915,11 @@ INSERT INTO Perfil (codigo, nome, descricao) VALUES
 GO
 
 
--- ============================================================
--- Tabela Usuario
--- ============================================================
 CREATE TABLE Usuario (
     id_usuario     INT          IDENTITY(1,1) NOT NULL,
     id_perfil      INT          NOT NULL,
     username       VARCHAR(50)  NOT NULL,
-    senha_hash     VARCHAR(255) NOT NULL,           -- hash bcrypt (gerado em C#)
+    senha_hash     VARCHAR(255) NOT NULL,
     nome_completo  VARCHAR(150) NOT NULL,
     email          VARCHAR(100) NULL,
     ativo          BIT          NOT NULL DEFAULT 1,
@@ -1330,12 +935,6 @@ CREATE NONCLUSTERED INDEX IDX_Usuario_Perfil ON Usuario(id_perfil);
 GO
 
 
--- ============================================================
--- SP: Cadastrar Usuário
--- ============================================================
--- A API gera o bcrypt hash da senha e passa pronto para a SP.
--- Aqui só validamos e gravamos.
--- ============================================================
 CREATE PROCEDURE sp_CadastrarUsuario
     @username      VARCHAR(50),
     @senha_hash    VARCHAR(255),
@@ -1369,12 +968,6 @@ END;
 GO
 
 
--- ============================================================
--- SP: Buscar Usuário por Username (para login)
--- ============================================================
--- Retorna o hash e o perfil para a API validar via BCrypt.Verify.
--- NÃO retorna o hash se o usuário estiver inativo.
--- ============================================================
 CREATE PROCEDURE sp_BuscarUsuarioPorUsername
     @username VARCHAR(50)
 AS
@@ -1397,9 +990,6 @@ END;
 GO
 
 
--- ============================================================
--- SP: Registrar último login (chamada após login bem-sucedido)
--- ============================================================
 CREATE PROCEDURE sp_RegistrarUltimoLogin
     @id_usuario INT
 AS
@@ -1413,9 +1003,6 @@ END;
 GO
 
 
--- ============================================================
--- View útil: usuários com perfil (para tela de admin)
--- ============================================================
 CREATE VIEW vw_Usuarios AS
     SELECT
         u.id_usuario,
@@ -1432,65 +1019,6 @@ CREATE VIEW vw_Usuarios AS
 GO
 
 
--- ============================================================
--- EXEMPLO DE USO
--- ============================================================
-/*
--- Cadastro (a API gera o hash via BCrypt.HashPassword antes de chamar)
-EXEC sp_CadastrarUsuario
-    @username      = 'lucas.catanio',
-    @senha_hash    = '$2a$11$ABCDEFGH...',  -- hash gerado em C#
-    @nome_completo = 'Lucas Catanio',
-    @email         = 'lucas@cac.com.br',
-    @codigo_perfil = 'COMPRADOR';
-
--- Login (API recebe username+senha, busca, e verifica via BCrypt.Verify)
-EXEC sp_BuscarUsuarioPorUsername @username = 'lucas.catanio';
--- Em C#:
---   var user = await connection.QuerySingleOrDefaultAsync(...);
---   if (user == null) return Unauthorized();
---   if (!BCrypt.Net.BCrypt.Verify(senhaInput, user.senha_hash)) return Unauthorized();
---   await connection.ExecuteAsync("sp_RegistrarUltimoLogin", new { user.id_usuario });
---   return Ok(new { token = GerarJwt(user) });
-*/
-
-
--- ############################################################################
--- ###  MÓDULO 5 de 5 — PROCEDURES DE CONSULTA, EDIÇÃO E INATIVAÇÃO
--- ############################################################################
-
-
--- ============================================================
--- CAC Ltda. — Camada completa de SPs de consulta (v2.4)
--- Para rodar APÓS v2 + v2.1 + v2.2 + v2.3
--- ============================================================
--- Objetivo: atender ao requisito do enunciado que diz
---   "Todas as inserções / deleções / exclusões E CONSULTAS
---    devem ser efetuadas via STORED PROCEDURE ou TRIGGERS"
--- 
--- Conteúdo:
---   §1 SPs de Listagem (com paginação + filtros + busca textual)
---   §2 SPs de Busca por Id
---   §3 SPs de Edição
---   §4 SPs de Inativação / Reativação (soft delete)
---   §5 SPs Wrappers das Views de Relatório (uniformiza acesso via SP)
---   §6 SP de Auditoria
--- 
--- Convenções:
---   - Paginação: @pagina (1-based) + @tamanho_pagina (default 50, max 200)
---   - Filtro de ativo: @ativo (NULL = todos, 1 = ativos, 0 = inativos)
---   - Busca textual: @busca (LIKE '%busca%' em campos relevantes)
---   - total_registros: retornado via COUNT(*) OVER() em cada linha
--- ============================================================
-
-
--- ============================================================
--- §1 SPs DE LISTAGEM
--- ============================================================
-
--- ------------------------------------------------------------
--- sp_ListarFornecedores
--- ------------------------------------------------------------
 CREATE PROCEDURE sp_ListarFornecedores
     @ativo          BIT          = NULL,
     @busca          VARCHAR(150) = NULL,
@@ -1525,9 +1053,7 @@ BEGIN
 END;
 GO
 
--- ------------------------------------------------------------
--- sp_ListarProdutos
--- ------------------------------------------------------------
+
 CREATE PROCEDURE sp_ListarProdutos
     @ativo          BIT          = NULL,
     @id_grupo       INT          = NULL,
@@ -1572,9 +1098,7 @@ BEGIN
 END;
 GO
 
--- ------------------------------------------------------------
--- sp_ListarGrupos
--- ------------------------------------------------------------
+
 CREATE PROCEDURE sp_ListarGrupos
     @busca VARCHAR(100) = NULL
 AS
@@ -1593,9 +1117,7 @@ BEGIN
 END;
 GO
 
--- ------------------------------------------------------------
--- sp_ListarSetores
--- ------------------------------------------------------------
+
 CREATE PROCEDURE sp_ListarSetores
     @ativo BIT          = NULL,
     @busca VARCHAR(100) = NULL
@@ -1616,9 +1138,7 @@ BEGIN
 END;
 GO
 
--- ------------------------------------------------------------
--- sp_ListarPerfis
--- ------------------------------------------------------------
+
 CREATE PROCEDURE sp_ListarPerfis
 AS
 BEGIN
@@ -1629,9 +1149,7 @@ BEGIN
 END;
 GO
 
--- ------------------------------------------------------------
--- sp_ListarUsuarios
--- ------------------------------------------------------------
+
 CREATE PROCEDURE sp_ListarUsuarios
     @ativo          BIT          = NULL,
     @codigo_perfil  VARCHAR(30)  = NULL,
@@ -1670,9 +1188,7 @@ BEGIN
 END;
 GO
 
--- ------------------------------------------------------------
--- sp_ListarFornecedoresProduto (associações)
--- ------------------------------------------------------------
+
 CREATE PROCEDURE sp_ListarFornecedoresProduto
     @id_produto    INT = NULL,
     @id_fornecedor INT = NULL
@@ -1698,9 +1214,7 @@ BEGIN
 END;
 GO
 
--- ------------------------------------------------------------
--- sp_ListarEntradas
--- ------------------------------------------------------------
+
 CREATE PROCEDURE sp_ListarEntradas
     @data_inicio    DATETIME = NULL,
     @data_fim       DATETIME = NULL,
@@ -1739,9 +1253,7 @@ BEGIN
 END;
 GO
 
--- ------------------------------------------------------------
--- sp_ListarSaidas
--- ------------------------------------------------------------
+
 CREATE PROCEDURE sp_ListarSaidas
     @data_inicio    DATETIME = NULL,
     @data_fim       DATETIME = NULL,
@@ -1779,10 +1291,6 @@ BEGIN
 END;
 GO
 
-
--- ============================================================
--- §2 SPs DE BUSCA POR ID
--- ============================================================
 
 CREATE PROCEDURE sp_BuscarFornecedorPorId
     @id_fornecedor INT
@@ -1845,16 +1353,14 @@ BEGIN
 END;
 GO
 
--- ------------------------------------------------------------
--- sp_BuscarEntradaPorId — retorna cabeçalho + itens em 2 result sets
--- ------------------------------------------------------------
+
 CREATE PROCEDURE sp_BuscarEntradaPorId
     @id_entrada INT
 AS
 BEGIN
     SET NOCOUNT ON;
 
-    -- result set 1: cabeçalho
+
     SELECT
         ec.id_entrada,
         ec.data_entrada,
@@ -1867,7 +1373,7 @@ BEGIN
     INNER JOIN Fornecedor f ON f.id_fornecedor = ec.id_fornecedor
     WHERE ec.id_entrada = @id_entrada;
 
-    -- result set 2: itens
+
     SELECT
         ie.id_item_entrada,
         ie.id_produto,
@@ -1883,16 +1389,14 @@ BEGIN
 END;
 GO
 
--- ------------------------------------------------------------
--- sp_BuscarSaidaPorId — retorna cabeçalho + itens em 2 result sets
--- ------------------------------------------------------------
+
 CREATE PROCEDURE sp_BuscarSaidaPorId
     @id_saida INT
 AS
 BEGIN
     SET NOCOUNT ON;
 
-    -- result set 1: cabeçalho
+
     SELECT
         sc.id_saida,
         sc.data_saida,
@@ -1903,7 +1407,7 @@ BEGIN
     INNER JOIN Setor s ON s.id_setor = sc.id_setor
     WHERE sc.id_saida = @id_saida;
 
-    -- result set 2: itens
+
     SELECT
         ise.id_item_saida,
         ise.id_produto,
@@ -1919,14 +1423,6 @@ BEGIN
 END;
 GO
 
-
--- ============================================================
--- §3 SPs DE EDIÇÃO
--- ============================================================
--- Política:
---   - NÃO editamos PK, nem CNPJ/username (chaves naturais únicas)
---   - NÃO editamos saldo/preço_medio (calculados via movimentação)
--- ============================================================
 
 CREATE PROCEDURE sp_EditarFornecedor
     @id_fornecedor INT,
@@ -2068,9 +1564,7 @@ BEGIN
 END;
 GO
 
--- ------------------------------------------------------------
--- sp_AlterarSenhaUsuario — recebe novo hash já calculado em C#
--- ------------------------------------------------------------
+
 CREATE PROCEDURE sp_AlterarSenhaUsuario
     @id_usuario      INT,
     @novo_senha_hash VARCHAR(255)
@@ -2089,10 +1583,6 @@ BEGIN
 END;
 GO
 
-
--- ============================================================
--- §4 SPs DE INATIVAÇÃO / REATIVAÇÃO (soft delete)
--- ============================================================
 
 CREATE PROCEDURE sp_DefinirAtivoFornecedor
     @id_fornecedor INT,
@@ -2173,14 +1663,6 @@ END;
 GO
 
 
--- ============================================================
--- §5 SPs WRAPPERS DAS VIEWS DE RELATÓRIO
--- ============================================================
--- A API sempre chama SPs, nunca SELECT direto.
--- As views ficam como infraestrutura, as SPs são o contrato.
--- ============================================================
-
--- Relatório 1
 CREATE PROCEDURE sp_Relatorio_ConsumoPorSetor
     @id_setor    INT      = NULL,
     @id_grupo    INT      = NULL,
@@ -2189,7 +1671,7 @@ CREATE PROCEDURE sp_Relatorio_ConsumoPorSetor
 AS
 BEGIN
     SET NOCOUNT ON;
-    -- Wrapper agregado que respeita filtros temporais (a view não filtra data)
+
     SELECT
         s.id_setor,
         s.nome                                              AS setor,
@@ -2213,7 +1695,7 @@ BEGIN
 END;
 GO
 
--- Relatório 2
+
 CREATE PROCEDURE sp_Relatorio_FichaProduto
     @id_produto  INT,
     @data_inicio DATETIME = NULL,
@@ -2230,7 +1712,7 @@ BEGIN
 END;
 GO
 
--- Relatório 3
+
 CREATE PROCEDURE sp_Relatorio_FornecedoresPorProduto
     @id_produto INT = NULL
 AS
@@ -2243,7 +1725,7 @@ BEGIN
 END;
 GO
 
--- Relatório 4
+
 CREATE PROCEDURE sp_Relatorio_ProdutosEmFalta
     @id_grupo INT = NULL
 AS
@@ -2258,7 +1740,7 @@ BEGIN
 END;
 GO
 
--- Relatório 5
+
 CREATE PROCEDURE sp_Relatorio_MenorPrecoPorProduto
     @id_produto INT = NULL
 AS
@@ -2271,7 +1753,7 @@ BEGIN
 END;
 GO
 
--- Relatório 7
+
 CREATE PROCEDURE sp_Relatorio_ComparativoPrecos
     @id_produto INT     = NULL,
     @min_pct_acima_menor DECIMAL(5,2) = NULL
@@ -2287,7 +1769,7 @@ BEGIN
 END;
 GO
 
--- Relatório 8 (Curva ABC)
+
 CREATE PROCEDURE sp_Relatorio_CurvaABC
     @classe CHAR(1) = NULL
 AS
@@ -2300,7 +1782,7 @@ BEGIN
 END;
 GO
 
--- Relatório 9 (Histórico de Preços)
+
 CREATE PROCEDURE sp_Relatorio_HistoricoPrecos
     @id_produto    INT,
     @id_fornecedor INT      = NULL,
@@ -2319,10 +1801,6 @@ BEGIN
 END;
 GO
 
-
--- ============================================================
--- §6 SP DE AUDITORIA
--- ============================================================
 
 CREATE PROCEDURE sp_Auditoria_Listar
     @tabela         VARCHAR(50)  = NULL,
@@ -2363,49 +1841,3 @@ BEGIN
     FETCH NEXT @tamanho_pagina ROWS ONLY;
 END;
 GO
-
-
--- ============================================================
--- RESUMO DA CAMADA v2.4
--- ============================================================
-/*
-LISTAGENS (9):
-  sp_ListarFornecedores         sp_ListarProdutos
-  sp_ListarGrupos               sp_ListarSetores
-  sp_ListarPerfis               sp_ListarUsuarios
-  sp_ListarFornecedoresProduto
-  sp_ListarEntradas             sp_ListarSaidas
-
-BUSCA POR ID (7):
-  sp_BuscarFornecedorPorId      sp_BuscarProdutoPorId
-  sp_BuscarGrupoPorId           sp_BuscarSetorPorId
-  sp_BuscarUsuarioPorId
-  sp_BuscarEntradaPorId         sp_BuscarSaidaPorId
-
-EDIÇÃO (6):
-  sp_EditarFornecedor           sp_EditarProduto
-  sp_EditarGrupo                sp_EditarSetor
-  sp_EditarUsuario              sp_AlterarSenhaUsuario
-
-INATIVAÇÃO/REATIVAÇÃO (5):
-  sp_DefinirAtivoFornecedor     sp_DefinirAtivoProduto
-  sp_DefinirAtivoSetor          sp_DefinirAtivoUsuario
-  sp_DefinirAtivoFornecedorProduto
-
-WRAPPERS DE RELATÓRIO (8):
-  sp_Relatorio_ConsumoPorSetor         (R1)
-  sp_Relatorio_FichaProduto            (R2)
-  sp_Relatorio_FornecedoresPorProduto  (R3)
-  sp_Relatorio_ProdutosEmFalta         (R4)
-  sp_Relatorio_MenorPrecoPorProduto    (R5)
-  sp_Relatorio_ComparativoPrecos       (R7)
-  sp_Relatorio_CurvaABC                (R8)
-  sp_Relatorio_HistoricoPrecos         (R9)
-
-  R6 (sp_ProdutosMaisDemandados) já está em v2.1
-
-AUDITORIA (1):
-  sp_Auditoria_Listar
-
-TOTAL DESTE ARQUIVO: 36 SPs
-*/
